@@ -123,17 +123,42 @@ project_longitude_m180_p180 <- function(x){
 #format the longitute to ensure that has negative values for Western emisphere
 
 data_p <- ext_tracks %>%
-  select(storm_name, month, day, hour, year, latitude, longitude, 
+  select(storm_id, storm_name, month, day, hour, year, latitude, longitude, 
          radius_34_ne, radius_34_se, radius_34_nw, radius_34_sw,
          radius_50_ne, radius_50_se, radius_50_nw, radius_50_sw,
          radius_64_ne, radius_64_se, radius_64_nw, radius_64_sw
          ) %>%
+  rename(original_id = storm_id) %>%
   mutate(storm_id = paste(storm_name, year, sep = "_"),
          date = make_datetime(year = as.integer(year), 
                               month = as.integer(month), 
                               day = as.integer(day),
                               hour = as.integer(hour),
                               tz = "UTC"),
-         longitude = project_longitude_m180_p180(longitude))
+         longitude = project_longitude_m180_p180(longitude)) %>%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_"))
+
+
+#convert the data to a long format
+##       storm_id                date latitude longitude wind_speed  ne  nw  se  sw
+## 1 Katrina-2005 2005-08-29 12:00:00     29.5     -89.6         34 200 100 200 150
+
+data_p_34 <- data_p %>%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_34_")) %>%
+  rename(ne = radius_34_ne, se = radius_34_se, nw = radius_34_nw, sw = radius_34_sw) %>%
+  mutate(wind_speed = 34)
+
+data_p_50 <- data_p %>%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_50_")) %>%
+  rename(ne = radius_50_ne, se = radius_50_se, nw = radius_50_nw, sw = radius_50_sw) %>%
+  mutate(wind_speed = 50)
+
+data_p_64 <- data_p %>%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_64_")) %>%
+  rename(ne = radius_64_ne, se = radius_64_se, nw = radius_64_nw, sw = radius_64_sw) %>%
+  mutate(wind_speed = 64)
+
+data_p_long <- rbind(data_p_34, data_p_50, data_p_64) %>%
+  arrange(original_id, storm_id, date, wind_speed)
 ```
 

@@ -237,18 +237,43 @@ ext_tracks &lt;- read_fwf(&quot;./data/ebtrk_atlc_1988_2015.txt&quot;,
 #format the longitute to ensure that has negative values for Western emisphere
 
 data_p &lt;- ext_tracks %&gt;%
-  select(storm_name, month, day, hour, year, latitude, longitude, 
+  select(storm_id, storm_name, month, day, hour, year, latitude, longitude, 
          radius_34_ne, radius_34_se, radius_34_nw, radius_34_sw,
          radius_50_ne, radius_50_se, radius_50_nw, radius_50_sw,
          radius_64_ne, radius_64_se, radius_64_nw, radius_64_sw
          ) %&gt;%
+  rename(original_id = storm_id) %&gt;%
   mutate(storm_id = paste(storm_name, year, sep = &quot;_&quot;),
          date = make_datetime(year = as.integer(year), 
                               month = as.integer(month), 
                               day = as.integer(day),
                               hour = as.integer(hour),
                               tz = &quot;UTC&quot;),
-         longitude = project_longitude_m180_p180(longitude))</code></pre>
+         longitude = project_longitude_m180_p180(longitude)) %&gt;%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with(&quot;radius_&quot;))
+
+
+#convert the data to a long format
+##       storm_id                date latitude longitude wind_speed  ne  nw  se  sw
+## 1 Katrina-2005 2005-08-29 12:00:00     29.5     -89.6         34 200 100 200 150
+
+data_p_34 &lt;- data_p %&gt;%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with(&quot;radius_34_&quot;)) %&gt;%
+  rename(ne = radius_34_ne, se = radius_34_se, nw = radius_34_nw, sw = radius_34_sw) %&gt;%
+  mutate(wind_speed = 34)
+
+data_p_50 &lt;- data_p %&gt;%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with(&quot;radius_50_&quot;)) %&gt;%
+  rename(ne = radius_50_ne, se = radius_50_se, nw = radius_50_nw, sw = radius_50_sw) %&gt;%
+  mutate(wind_speed = 50)
+
+data_p_64 &lt;- data_p %&gt;%
+  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with(&quot;radius_64_&quot;)) %&gt;%
+  rename(ne = radius_64_ne, se = radius_64_se, nw = radius_64_nw, sw = radius_64_sw) %&gt;%
+  mutate(wind_speed = 64)
+
+data_p_long &lt;- rbind(data_p_34, data_p_50, data_p_64) %&gt;%
+  arrange(original_id, storm_id, date, wind_speed)</code></pre>
 </div>
 </div>
 </div>
