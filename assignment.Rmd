@@ -5,6 +5,7 @@ output:
   html_document: 
     keep_md: yes
     toc: yes
+    toc_depth: 5
 ---
 
 ```{r setup, include=FALSE}
@@ -14,6 +15,8 @@ library(readr)
 library(dplyr)
 library(lubridate)
 library(ggplot2)
+
+library(geosphere)
 ```
 
 ## Purpose
@@ -82,11 +85,13 @@ base_map +
 
 The data, these wind radii, are available for Atlantic basin tropical storms since 1988 through the Extended Best Tract dataset, available [here]( http://rammb.cira.colostate.edu/research/tropical_cyclones/tc_extended_best_track_dataset/). The __raw data__, provided for the assignment, can be found in the `ebtrk_atlc_1988_2015.txt` file in the `data` folder of the repository.
 
+From the documentation on line ..
+
+_'There is one line of data for each date and time period (00, 06, 12 or 18 UTC) of each storm (see sample line listed below). The information is given in the following order: Storm identification number, storm name, month, day, time, year, latitude (deg N), longitude (deg W), maximum wind speed (kt), minimum central pressure (hPa), radius of maximum wind speed (nm), eye diameter (nm), pressure of the outer closed isobar (hPa), radius of the outer closed isobar (nm), radii (nm) of 34 kt wind to the NE, SE, SW and NW of the storm center, radii (nm) of 50 kt wind to the NE, SE, SW and NW, radii (nm) of 64 kt wind to the NE, SE, SW, NW, and a storm type code.  This code is either * for a tropical system (tropical depression, tropical storm, or hurricane), W for tropical wave, D for a tropical disturbance, S for a subtropical storm, E for an extra-tropical storm, or L for remnant low. The last record is the distance to the nearest major landmass (km), where the island of Trinidad is the smallest area considered to be land. Negative values indicate the storm center is over land. '_
+
 #### Reading the Data
 
-```{r readTheData, collapse = TRUE}
-
-
+```{r readTheData, collapse = TRUE, warning=FALSE, message=FALSE}
 ext_tracks_widths <- c(7, 10, 2, 2, 3, 5, 5, 6, 4, 5, 4, 4, 5, 3, 4, 3, 3, 3,
                        4, 3, 3, 3, 4, 3, 3, 3, 2, 6, 1)
 ext_tracks_colnames <- c("storm_id", "storm_name", "month", "day",
@@ -103,58 +108,94 @@ ext_tracks <- read_fwf("./data/ebtrk_atlc_1988_2015.txt",
                        na = "-99")
 ```
 
-#### Cleaning the Data
-
-```{r supportingFunction}
-project_longitude_m180_p180 <- function(x){
-  ifelse(x > 180L, x - 360L, x)
-}
+__Data Info__
+```{r collapse=TRUE}
+str(ext_tracks)
 ```
 
+#### Cleaning the Data
 
 ```{r cleaningData}
 #Select only the relevant cols
 #create a storm_id as the concatenation of the storm name and year
 #create a data_time variable describing when the storm was happening
 #format the longitute to ensure that has negative values for Western emisphere
+#  longitude in raw data is measured in degree West
 
-data_p <- ext_tracks %>%
-  select(storm_id, storm_name, month, day, hour, year, latitude, longitude, 
-         radius_34_ne, radius_34_se, radius_34_nw, radius_34_sw,
-         radius_50_ne, radius_50_se, radius_50_nw, radius_50_sw,
-         radius_64_ne, radius_64_se, radius_64_nw, radius_64_sw
+data_tmp <- ext_tracks %>%
+  select(storm_id, storm_name, month, day, hour, year, latitude, longitude, starts_with("radius_")
          ) %>%
   rename(original_id = storm_id) %>%
-  mutate(storm_id = paste(storm_name, year, sep = "_"),
+  mutate(storm_id = paste(storm_name, year, sep = "-"),
          date = make_datetime(year = as.integer(year), 
                               month = as.integer(month), 
                               day = as.integer(day),
                               hour = as.integer(hour),
                               tz = "UTC"),
-         longitude = project_longitude_m180_p180(longitude)) %>%
-  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_"))
+         longitude = -longitude)
 
+data_p <- data_tmp  %>%
+  select(storm_id, date, latitude, longitude, starts_with("radius_"))
+
+ggplot(data = data_p, mapping = aes(y = latitude)) +
+  geom_point(aes(x = longitude))
 
 #convert the data to a long format
 ##       storm_id                date latitude longitude wind_speed  ne  nw  se  sw
 ## 1 Katrina-2005 2005-08-29 12:00:00     29.5     -89.6         34 200 100 200 150
 
 data_p_34 <- data_p %>%
-  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_34_")) %>%
+  select(storm_id, date, latitude, longitude,starts_with("radius_34_")) %>%
   rename(ne = radius_34_ne, se = radius_34_se, nw = radius_34_nw, sw = radius_34_sw) %>%
   mutate(wind_speed = 34)
 
 data_p_50 <- data_p %>%
-  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_50_")) %>%
+  select(storm_id, date, latitude, longitude,starts_with("radius_50_")) %>%
   rename(ne = radius_50_ne, se = radius_50_se, nw = radius_50_nw, sw = radius_50_sw) %>%
   mutate(wind_speed = 50)
 
 data_p_64 <- data_p %>%
-  select(original_id, storm_id, storm_name, date, latitude, longitude,starts_with("radius_64_")) %>%
+  select(storm_id, date, latitude, longitude,starts_with("radius_64_")) %>%
   rename(ne = radius_64_ne, se = radius_64_se, nw = radius_64_nw, sw = radius_64_sw) %>%
   mutate(wind_speed = 64)
 
 data_p_long <- rbind(data_p_34, data_p_50, data_p_64) %>%
-  arrange(original_id, storm_id, date, wind_speed)
+  arrange(storm_id, date, wind_speed)
+
+data_p_long[data_p_long$storm_id == "KATRINA-2005" & data_p_long$date == ymd_hms("2005-08-29 12:00:00"),]
+```
+
+### Experiment with the `geosphere` package
+
+_'As a hint, notice that the wind radii geom essentially shows a polygon for each of the wind levels. One approach to writing this geom is therefore to write the hurricane stat / geom combination that uses the wind radii to calculate the points along the boundary of the polygon and then create a geom that inherits from a polygon geom.'_
+
+__Point at distance and bearing__
+
+As suggested the `destPoint` function can create polygons that can be used to map the wind extension in each quadrant. See the example below. 
+
+```{r experimentGeosphere, collapse=TRUE}
+center <- c(-89.6, 29.5)
+#p: longitude and latitude (degrees) of the starting point
+#b: bearing in degress
+#d: distance in meters
+circle <- destPoint(center, b=0:365, d = 1000)
+
+circle_ne <- destPoint(center, b=0:90, d=800)
+circle_ne <- rbind(center, circle_ne)
+
+circle_se <- destPoint(center, b=90:180, d=600)
+circle_se <- rbind(center, circle_se)
+
+circle_sw <- destPoint(center, b=180:270, d=400)
+circle_sw <- rbind(center, circle_sw)
+
+circle_nw <- destPoint(center, b=270:360, d=200)
+circle_nw <- rbind(center, circle_nw)
+
+plot(circle, type='l')
+polygon(circle_ne, col = "red")
+polygon(circle_se, col = "blue")
+polygon(circle_sw, col = "gray")
+polygon(circle_nw, col = "orange")
 ```
 
