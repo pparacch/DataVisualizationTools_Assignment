@@ -195,7 +195,7 @@ base_map +
 <p>The data, these wind radii, are available for Atlantic basin tropical storms since 1988 through the Extended Best Tract dataset, available <a href="http://rammb.cira.colostate.edu/research/tropical_cyclones/tc_extended_best_track_dataset/">here</a>. The <strong>raw data</strong>, provided for the assignment, can be found in the <code>ebtrk_atlc_1988_2015.txt</code> file in the <code>data</code> folder of the repository.</p>
 <div id="reading-the-data" class="section level4">
 <h4>Reading the Data</h4>
-<pre class="r"><code>library(readr)
+<pre class="r"><code>
 
 ext_tracks_widths &lt;- c(7, 10, 2, 2, 3, 5, 5, 6, 4, 5, 4, 4, 5, 3, 4, 3, 3, 3,
                        4, 3, 3, 3, 4, 3, 3, 3, 2, 6, 1)
@@ -225,6 +225,30 @@ ext_tracks &lt;- read_fwf(&quot;./data/ebtrk_atlc_1988_2015.txt&quot;,
 ##   final = col_character()
 ## )
 ## See spec(...) for full column specifications.</code></pre>
+</div>
+<div id="cleaning-the-data" class="section level4">
+<h4>Cleaning the Data</h4>
+<pre class="r"><code>project_longitude_m180_p180 &lt;- function(x){
+  ifelse(x &gt; 180L, x - 360L, x)
+}</code></pre>
+<pre class="r"><code>#Select only the relevant cols
+#create a storm_id as the concatenation of the storm name and year
+#create a data_time variable describing when the storm was happening
+#format the longitute to ensure that has negative values for Western emisphere
+
+data_p &lt;- ext_tracks %&gt;%
+  select(storm_name, month, day, hour, year, latitude, longitude, 
+         radius_34_ne, radius_34_se, radius_34_nw, radius_34_sw,
+         radius_50_ne, radius_50_se, radius_50_nw, radius_50_sw,
+         radius_64_ne, radius_64_se, radius_64_nw, radius_64_sw
+         ) %&gt;%
+  mutate(storm_id = paste(storm_name, year, sep = &quot;_&quot;),
+         date = make_datetime(year = as.integer(year), 
+                              month = as.integer(month), 
+                              day = as.integer(day),
+                              hour = as.integer(hour),
+                              tz = &quot;UTC&quot;),
+         longitude = project_longitude_m180_p180(longitude))</code></pre>
 </div>
 </div>
 </div>

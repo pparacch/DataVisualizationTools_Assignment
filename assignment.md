@@ -73,7 +73,7 @@ The data, these wind radii, are available for Atlantic basin tropical storms sin
 
 
 ```r
-library(readr)
+
 
 ext_tracks_widths <- c(7, 10, 2, 2, 3, 5, 5, 6, 4, 5, 4, 4, 5, 3, 4, 3, 3, 3,
                        4, 3, 3, 3, 4, 3, 3, 3, 2, 6, 1)
@@ -103,5 +103,37 @@ ext_tracks <- read_fwf("./data/ebtrk_atlc_1988_2015.txt",
 ##   final = col_character()
 ## )
 ## See spec(...) for full column specifications.
+```
+
+#### Cleaning the Data
+
+
+```r
+project_longitude_m180_p180 <- function(x){
+  ifelse(x > 180L, x - 360L, x)
+}
+```
+
+
+
+```r
+#Select only the relevant cols
+#create a storm_id as the concatenation of the storm name and year
+#create a data_time variable describing when the storm was happening
+#format the longitute to ensure that has negative values for Western emisphere
+
+data_p <- ext_tracks %>%
+  select(storm_name, month, day, hour, year, latitude, longitude, 
+         radius_34_ne, radius_34_se, radius_34_nw, radius_34_sw,
+         radius_50_ne, radius_50_se, radius_50_nw, radius_50_sw,
+         radius_64_ne, radius_64_se, radius_64_nw, radius_64_sw
+         ) %>%
+  mutate(storm_id = paste(storm_name, year, sep = "_"),
+         date = make_datetime(year = as.integer(year), 
+                              month = as.integer(month), 
+                              day = as.integer(day),
+                              hour = as.integer(hour),
+                              tz = "UTC"),
+         longitude = project_longitude_m180_p180(longitude))
 ```
 
