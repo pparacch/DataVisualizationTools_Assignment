@@ -1,0 +1,49 @@
+---
+title: 'Building a Geom: playground'
+author: "Pier Lorenzo Paracchini"
+date: "20 juni 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE)
+```
+
+## How to build a new geom
+
+### Example 1
+
+```{r example1}
+# (1st) create a new class from the Geom class
+
+#  required_aes = <a character vector of required aesthetics>,
+
+#  default_aes = aes(<default values for certain aesthetics>),
+
+#  draw_key = <a function used to draw the key in the legend>,
+
+#  draw_panel = function(data, panel_scales, coord) {
+#    Function that returns a grid grob that will 
+#    be plotted (this is where the real work occurs)
+
+GeomMyPoint <- ggplot2::ggproto("GeomMyPoint", Geom, 
+                 required_aes = c("x", "y"),
+                 default_aes = aes(shape = 1),
+                 draw_key = ggplot2::draw_key_point,
+                 draw_panel = function(data, panel_scales, coord){
+                   #Transform the data
+                   coords <- coord$transform(data, panel_scales)
+                   
+                   #Print out the transofrmed data
+                   str(coords)
+                   
+                   #Create a grid grob
+                   grid::pointsGrob(
+                     x = coords$x,
+                     y = coords$y,
+                     pch = coords$shape
+                   )
+                 })
+
+```
+
