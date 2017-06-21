@@ -2,7 +2,9 @@
 title: 'Building a Geom: playground'
 author: "Pier Lorenzo Paracchini"
 date: "20 juni 2017"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
