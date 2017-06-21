@@ -20,6 +20,8 @@ data("worldcup")
 
 ## How to build a new geom
 
+
+
 ```
 (1st) create a new class from the Geom class
  required_aes = <a character vector of required aesthetics>,
@@ -130,6 +132,85 @@ ggplot(data = worldcup, mapping = aes(x = Time, y = Shots)) +
   geom_tranparentpoint() +
   facet_wrap(~ Position, ncol = 2)
 ```
+
+### Example 3
+
+```
+Overriding draw_panel() is most appropriate if there is one graphic element per row. In other cases, you want graphic element per group. For example, take polygons: each row gives one vertex of a polygon. In this case, you should instead override draw_group().
+```
+
+```{r example3}
+
+StatChull <- ggproto("StatChull", Stat,
+  compute_group = function(data, scales) {
+    #str(data)
+    tmp <- data[chull(data$x, data$y), , drop = FALSE]
+    #str(tmp)
+    return(tmp)
+  },
+  
+  required_aes = c("x", "y")
+)
+
+stat_chull <- function(mapping = NULL, data = NULL, geom = "polygon",
+                       position = "identity", na.rm = FALSE, show.legend = NA, 
+                       inherit.aes = TRUE, ...) {
+  layer(
+    stat = StatChull, data = data, mapping = mapping, geom = geom, 
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point() + 
+  stat_chull(fill = NA, colour = "black")
+
+
+GeomSimplePolygon <- ggproto("GeomPolygon", Geom,
+                             required_aes = c("x", "y"),
+                             default_aes = aes(colour = NA, fill = "grey20", size = 0.5, linetype = 1, alpha = 1),
+                             draw_key = draw_key_polygon,
+                             draw_group = function(data, panel_scales, coord){
+                               print("draw_group() ....")
+                               n <- nrow(data)
+                               if(n <= 2) return(grid::nullGrob())
+                               
+                               coords <- coord$transform(data, panel_scales)
+                               str(coords)
+                               
+                               #A polygon can have only color, fill per polygon
+                               first_row <- coords[1, ,drop = FALSE]
+                               print(first_row)                               
+                               grid::polygonGrob(
+                                coords$x, coords$y, 
+                                default.units = "native",
+                                gp = grid::gpar(
+                                  col = first_row$colour,
+                                  fill = scales::alpha(first_row$fill, first_row$alpha),
+                                  lwd = first_row$size * .pt,
+                                  lty = first_row$linetype
+                                )
+                              )
+                            }
+)
+
+geom_simple_polygon <- function(mapping = NULL, data = NULL, stat = "chull",
+                                position = "identity", na.rm = FALSE, show.legend = NA, 
+                                inherit.aes = TRUE, ...) {
+  layer(
+    geom = GeomSimplePolygon, mapping = mapping, data = data, stat = stat, 
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point(aes(colour = class)) + 
+  geom_simple_polygon(aes(colour = class), fill = NA)
+
+```
+
 
 ### Build the Hurricane Geom
 
