@@ -1,5 +1,5 @@
 ---
-title: 'Building a Geom: playground'
+title: 'Building the Hurricane Geom: playground'
 author: "Pier Lorenzo Paracchini"
 date: "20 juni 2017"
 output: 
@@ -15,8 +15,44 @@ library(ggplot2)
 library(grid)
 library(lubridate)
 library(magrittr)
+library(geosphere)
 data("worldcup")
 ```
+
+### Experiment with the `geosphere` package
+
+_'As a hint, notice that the wind radii geom essentially shows a polygon for each of the wind levels. One approach to writing this geom is therefore to write the hurricane stat / geom combination that uses the wind radii to calculate the points along the boundary of the polygon and then create a geom that inherits from a polygon geom.'_
+
+__Point at distance and bearing__
+
+As suggested the `destPoint` function can create polygons that can be used to map the wind extension in each quadrant. See the example below. 
+
+```{r experimentGeosphere, collapse=TRUE}
+center <- c(-89.6, 29.5)
+#p: longitude and latitude (degrees) of the starting point
+#b: bearing in degress
+#d: distance in meters
+circle <- destPoint(center, b=0:365, d = 1000)
+
+circle_ne <- destPoint(center, b=0:90, d=800)
+circle_ne <- rbind(center, circle_ne)
+
+circle_se <- destPoint(center, b=90:180, d=600)
+circle_se <- rbind(center, circle_se)
+
+circle_sw <- destPoint(center, b=180:270, d=400)
+circle_sw <- rbind(center, circle_sw)
+
+circle_nw <- destPoint(center, b=270:360, d=200)
+circle_nw <- rbind(center, circle_nw)
+
+plot(circle, type='l')
+polygon(circle_ne, col = "red")
+polygon(circle_se, col = "blue")
+polygon(circle_sw, col = "gray")
+polygon(circle_nw, col = "orange")
+```
+
 
 ## How to build a new geom
 

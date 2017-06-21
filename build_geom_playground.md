@@ -1,10 +1,50 @@
-# Building a Geom: playground
+# Building the Hurricane Geom: playground
 Pier Lorenzo Paracchini  
 20 juni 2017  
 
 
 
+### Experiment with the `geosphere` package
+
+_'As a hint, notice that the wind radii geom essentially shows a polygon for each of the wind levels. One approach to writing this geom is therefore to write the hurricane stat / geom combination that uses the wind radii to calculate the points along the boundary of the polygon and then create a geom that inherits from a polygon geom.'_
+
+__Point at distance and bearing__
+
+As suggested the `destPoint` function can create polygons that can be used to map the wind extension in each quadrant. See the example below. 
+
+
+```r
+center <- c(-89.6, 29.5)
+#p: longitude and latitude (degrees) of the starting point
+#b: bearing in degress
+#d: distance in meters
+circle <- destPoint(center, b=0:365, d = 1000)
+
+circle_ne <- destPoint(center, b=0:90, d=800)
+circle_ne <- rbind(center, circle_ne)
+
+circle_se <- destPoint(center, b=90:180, d=600)
+circle_se <- rbind(center, circle_se)
+
+circle_sw <- destPoint(center, b=180:270, d=400)
+circle_sw <- rbind(center, circle_sw)
+
+circle_nw <- destPoint(center, b=270:360, d=200)
+circle_nw <- rbind(center, circle_nw)
+
+plot(circle, type='l')
+polygon(circle_ne, col = "red")
+polygon(circle_se, col = "blue")
+polygon(circle_sw, col = "gray")
+polygon(circle_nw, col = "orange")
+```
+
+![](build_geom_playground_files/figure-html/experimentGeosphere-1.png)<!-- -->
+
+
 ## How to build a new geom
+
+
 
 ```
 (1st) create a new class from the Geom class
@@ -255,6 +295,193 @@ ggplot(data = worldcup, mapping = aes(x = Time, y = Shots)) +
 ##  $ alpha: num  0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 ...
 ##  - attr(*, "vars")= chr "PANEL"
 ```
+
+### Example 3
+
+```
+Overriding draw_panel() is most appropriate if there is one graphic element per row. In other cases, you want graphic element per group. For example, take polygons: each row gives one vertex of a polygon. In this case, you should instead override draw_group().
+```
+
+
+```r
+
+StatChull <- ggproto("StatChull", Stat,
+  compute_group = function(data, scales) {
+    #str(data)
+    tmp <- data[chull(data$x, data$y), , drop = FALSE]
+    #str(tmp)
+    return(tmp)
+  },
+  
+  required_aes = c("x", "y")
+)
+
+stat_chull <- function(mapping = NULL, data = NULL, geom = "polygon",
+                       position = "identity", na.rm = FALSE, show.legend = NA, 
+                       inherit.aes = TRUE, ...) {
+  layer(
+    stat = StatChull, data = data, mapping = mapping, geom = geom, 
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point() + 
+  stat_chull(fill = NA, colour = "black")
+```
+
+![](build_geom_playground_files/figure-html/example3-1.png)<!-- -->
+
+```r
+
+
+GeomSimplePolygon <- ggproto("GeomPolygon", Geom,
+                             required_aes = c("x", "y"),
+                             default_aes = aes(colour = NA, fill = "grey20", size = 0.5, linetype = 1, alpha = 1),
+                             draw_key = draw_key_polygon,
+                             draw_group = function(data, panel_scales, coord){
+                               print("draw_group() ....")
+                               n <- nrow(data)
+                               if(n <= 2) return(grid::nullGrob())
+                               
+                               coords <- coord$transform(data, panel_scales)
+                               str(coords)
+                               
+                               #A polygon can have only color, fill per polygon
+                               first_row <- coords[1, ,drop = FALSE]
+                               print(first_row)                               
+                               grid::polygonGrob(
+                                coords$x, coords$y, 
+                                default.units = "native",
+                                gp = grid::gpar(
+                                  col = first_row$colour,
+                                  fill = scales::alpha(first_row$fill, first_row$alpha),
+                                  lwd = first_row$size * .pt,
+                                  lty = first_row$linetype
+                                )
+                              )
+                            }
+)
+
+geom_simple_polygon <- function(mapping = NULL, data = NULL, stat = "chull",
+                                position = "identity", na.rm = FALSE, show.legend = NA, 
+                                inherit.aes = TRUE, ...) {
+  layer(
+    geom = GeomSimplePolygon, mapping = mapping, data = data, stat = stat, 
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point(aes(colour = class)) + 
+  geom_simple_polygon(aes(colour = class), fill = NA)
+```
+
+![](build_geom_playground_files/figure-html/example3-2.png)<!-- -->
+
+```
+## [1] "draw_group() ...."
+## 'data.frame':	4 obs. of  9 variables:
+##  $ colour  : chr  "#F8766D" "#F8766D" "#F8766D" "#F8766D"
+##  $ x       : num  0.955 0.736 0.736 0.82
+##  $ y       : num  0.386 0.358 0.443 0.443
+##  $ PANEL   : int  1 1 1 1
+##  $ group   : int  1 1 1 1
+##  $ fill    : logi  NA NA NA NA
+##  $ size    : num  0.5 0.5 0.5 0.5
+##  $ linetype: num  1 1 1 1
+##  $ alpha   : num  1 1 1 1
+##  - attr(*, "vars")= chr "PANEL"
+##    colour         x         y PANEL group fill size linetype alpha
+## 1 #F8766D 0.9545455 0.3863636     1     1   NA  0.5        1     1
+## [1] "draw_group() ...."
+## 'data.frame':	6 obs. of  9 variables:
+##  $ colour  : chr  "#C49A00" "#C49A00" "#C49A00" "#C49A00" ...
+##  $ x       : num  0.3316 0.298 0.2475 0.0791 0.0791 ...
+##  $ y       : num  0.472 0.415 0.358 0.415 0.756 ...
+##  $ PANEL   : int  1 1 1 1 1 1
+##  $ group   : int  2 2 2 2 2 2
+##  $ fill    : logi  NA NA NA NA NA NA
+##  $ size    : num  0.5 0.5 0.5 0.5 0.5 0.5
+##  $ linetype: num  1 1 1 1 1 1
+##  $ alpha   : num  1 1 1 1 1 1
+##  - attr(*, "vars")= chr "PANEL"
+##    colour         x         y PANEL group fill size linetype alpha
+## 5 #C49A00 0.3316498 0.4715909     1     2   NA  0.5        1     1
+## [1] "draw_group() ...."
+## 'data.frame':	5 obs. of  9 variables:
+##  $ colour  : chr  "#53B400" "#53B400" "#53B400" "#53B400" ...
+##  $ x       : num  0.6684 0.4832 0.2475 0.0791 0.197
+##  $ y       : num  0.415 0.358 0.386 0.528 0.614
+##  $ PANEL   : int  1 1 1 1 1
+##  $ group   : int  3 3 3 3 3
+##  $ fill    : logi  NA NA NA NA NA
+##  $ size    : num  0.5 0.5 0.5 0.5 0.5
+##  $ linetype: num  1 1 1 1 1
+##  $ alpha   : num  1 1 1 1 1
+##  - attr(*, "vars")= chr "PANEL"
+##     colour         x         y PANEL group fill size linetype alpha
+## 11 #53B400 0.6683502 0.4147727     1     3   NA  0.5        1     1
+## [1] "draw_group() ...."
+## 'data.frame':	5 obs. of  9 variables:
+##  $ colour  : chr  "#00C094" "#00C094" "#00C094" "#00C094" ...
+##  $ x       : num  0.416 0.332 0.18 0.332 0.449
+##  $ y       : num  0.301 0.187 0.386 0.386 0.358
+##  $ PANEL   : int  1 1 1 1 1
+##  $ group   : int  4 4 4 4 4
+##  $ fill    : logi  NA NA NA NA NA
+##  $ size    : num  0.5 0.5 0.5 0.5 0.5
+##  $ linetype: num  1 1 1 1 1
+##  $ alpha   : num  1 1 1 1 1
+##  - attr(*, "vars")= chr "PANEL"
+##     colour         x         y PANEL group fill size linetype alpha
+## 16 #00C094 0.4158249 0.3011364     1     4   NA  0.5        1     1
+## [1] "draw_group() ...."
+## 'data.frame':	7 obs. of  9 variables:
+##  $ colour  : chr  "#00B6EB" "#00B6EB" "#00B6EB" "#00B6EB" ...
+##  $ x       : num  0.736 0.769 0.567 0.348 0.231 ...
+##  $ y       : num  0.1875 0.1307 0.0455 0.1875 0.2727 ...
+##  $ PANEL   : int  1 1 1 1 1 1 1
+##  $ group   : int  5 5 5 5 5 5 5
+##  $ fill    : logi  NA NA NA NA NA NA ...
+##  $ size    : num  0.5 0.5 0.5 0.5 0.5 0.5 0.5
+##  $ linetype: num  1 1 1 1 1 1 1
+##  $ alpha   : num  1 1 1 1 1 1 1
+##  - attr(*, "vars")= chr "PANEL"
+##     colour         x      y PANEL group fill size linetype alpha
+## 21 #00B6EB 0.7356902 0.1875     1     5   NA  0.5        1     1
+## [1] "draw_group() ...."
+## 'data.frame':	7 obs. of  9 variables:
+##  $ colour  : chr  "#A58AFF" "#A58AFF" "#A58AFF" "#A58AFF" ...
+##  $ x       : num  0.6852 0.5505 0.2306 0.1128 0.0455 ...
+##  $ y       : num  0.273 0.301 0.386 0.443 0.528 ...
+##  $ PANEL   : int  1 1 1 1 1 1 1
+##  $ group   : int  6 6 6 6 6 6 6
+##  $ fill    : logi  NA NA NA NA NA NA ...
+##  $ size    : num  0.5 0.5 0.5 0.5 0.5 0.5 0.5
+##  $ linetype: num  1 1 1 1 1 1 1
+##  $ alpha   : num  1 1 1 1 1 1 1
+##  - attr(*, "vars")= chr "PANEL"
+##     colour         x         y PANEL group fill size linetype alpha
+## 28 #A58AFF 0.6851852 0.2727273     1     6   NA  0.5        1     1
+## [1] "draw_group() ...."
+## 'data.frame':	7 obs. of  9 variables:
+##  $ colour  : chr  "#FB61D7" "#FB61D7" "#FB61D7" "#FB61D7" ...
+##  $ x       : num  0.87 0.803 0.567 0.332 0.231 ...
+##  $ y       : num  0.1875 0.1023 0.0455 0.1875 0.2727 ...
+##  $ PANEL   : int  1 1 1 1 1 1 1
+##  $ group   : int  7 7 7 7 7 7 7
+##  $ fill    : logi  NA NA NA NA NA NA ...
+##  $ size    : num  0.5 0.5 0.5 0.5 0.5 0.5 0.5
+##  $ linetype: num  1 1 1 1 1 1 1
+##  $ alpha   : num  1 1 1 1 1 1 1
+##  - attr(*, "vars")= chr "PANEL"
+##     colour         x      y PANEL group fill size linetype alpha
+## 35 #FB61D7 0.8703704 0.1875     1     7   NA  0.5        1     1
+```
+
 
 ### Build the Hurricane Geom
 

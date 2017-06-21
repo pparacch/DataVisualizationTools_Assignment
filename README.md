@@ -93,105 +93,6 @@ ext_tracks <- read_fwf("./data/ebtrk_atlc_1988_2015.txt",
                        na = "-99")
 ```
 
-__Data Info__
-
-```r
-str(ext_tracks)
-## Classes 'tbl_df', 'tbl' and 'data.frame':	11824 obs. of  29 variables:
-##  $ storm_id        : chr  "AL0188" "AL0188" "AL0188" "AL0188" ...
-##  $ storm_name      : chr  "ALBERTO" "ALBERTO" "ALBERTO" "ALBERTO" ...
-##  $ month           : chr  "08" "08" "08" "08" ...
-##  $ day             : chr  "05" "06" "06" "06" ...
-##  $ hour            : chr  "18" "00" "06" "12" ...
-##  $ year            : int  1988 1988 1988 1988 1988 1988 1988 1988 1988 1988 ...
-##  $ latitude        : num  32 32.8 34 35.2 37 38.7 40 41.5 43 45 ...
-##  $ longitude       : num  77.5 76.2 75.2 74.6 73.5 72.4 70.8 69 67.5 65.5 ...
-##  $ max_wind        : int  20 20 20 25 25 25 30 35 35 35 ...
-##  $ min_pressure    : int  1015 1014 1013 1012 1011 1009 1006 1002 1002 1004 ...
-##  $ rad_max_wind    : int  NA NA NA NA NA NA NA NA NA NA ...
-##  $ eye_diameter    : int  NA NA NA NA NA NA NA NA NA NA ...
-##  $ pressure_1      : int  NA NA NA NA NA NA 1012 1012 1008 1008 ...
-##  $ pressure_2      : int  NA NA NA NA NA NA 90 60 50 50 ...
-##  $ radius_34_ne    : int  0 0 0 0 0 0 0 100 100 NA ...
-##  $ radius_34_se    : int  0 0 0 0 0 0 0 100 100 NA ...
-##  $ radius_34_sw    : int  0 0 0 0 0 0 0 50 50 NA ...
-##  $ radius_34_nw    : int  0 0 0 0 0 0 0 50 50 NA ...
-##  $ radius_50_ne    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ radius_50_se    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ radius_50_sw    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ radius_50_nw    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ radius_64_ne    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ radius_64_se    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ radius_64_sw    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ radius_64_nw    : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ storm_type      : chr  "*" "*" "*" "*" ...
-##  $ distance_to_land: int  218 213 149 126 197 193 150 118 144 22 ...
-##  $ final           : chr  "." "." "." "." ...
-##  - attr(*, "spec")=List of 2
-##   ..$ cols   :List of 29
-##   .. ..$ storm_id        : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_character" "collector"
-##   .. ..$ storm_name      : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_character" "collector"
-##   .. ..$ month           : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_character" "collector"
-##   .. ..$ day             : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_character" "collector"
-##   .. ..$ hour            : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_character" "collector"
-##   .. ..$ year            : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ latitude        : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_double" "collector"
-##   .. ..$ longitude       : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_double" "collector"
-##   .. ..$ max_wind        : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ min_pressure    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ rad_max_wind    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ eye_diameter    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ pressure_1      : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ pressure_2      : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_34_ne    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_34_se    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_34_sw    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_34_nw    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_50_ne    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_50_se    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_50_sw    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_50_nw    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_64_ne    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_64_se    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_64_sw    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ radius_64_nw    : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ storm_type      : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_character" "collector"
-##   .. ..$ distance_to_land: list()
-##   .. .. ..- attr(*, "class")= chr  "collector_integer" "collector"
-##   .. ..$ final           : list()
-##   .. .. ..- attr(*, "class")= chr  "collector_character" "collector"
-##   ..$ default: list()
-##   .. ..- attr(*, "class")= chr  "collector_guess" "collector"
-##   ..- attr(*, "class")= chr "col_spec"
-```
-
 #### Cleaning the Data
 
 
@@ -250,7 +151,7 @@ data_p_long[data_p_long$storm_id == "KATRINA-2005" & data_p_long$date == ymd_hms
 ```
 
 ```
-## # A tibble: 3 × 9
+## # A tibble: 3 x 9
 ##       storm_id                date latitude longitude    ne    se    sw
 ##          <chr>              <dttm>    <dbl>     <dbl> <int> <int> <int>
 ## 1 KATRINA-2005 2005-08-29 12:00:00     29.5     -89.6   200   200   150
@@ -259,40 +160,8 @@ data_p_long[data_p_long$storm_id == "KATRINA-2005" & data_p_long$date == ymd_hms
 ## # ... with 2 more variables: nw <int>, wind_speed <dbl>
 ```
 
-### Experiment with the `geosphere` package
-
-_'As a hint, notice that the wind radii geom essentially shows a polygon for each of the wind levels. One approach to writing this geom is therefore to write the hurricane stat / geom combination that uses the wind radii to calculate the points along the boundary of the polygon and then create a geom that inherits from a polygon geom.'_
-
-__Point at distance and bearing__
-
-As suggested the `destPoint` function can create polygons that can be used to map the wind extension in each quadrant. See the example below. 
-
-
 ```r
-center <- c(-89.6, 29.5)
-#p: longitude and latitude (degrees) of the starting point
-#b: bearing in degress
-#d: distance in meters
-circle <- destPoint(center, b=0:365, d = 1000)
-
-circle_ne <- destPoint(center, b=0:90, d=800)
-circle_ne <- rbind(center, circle_ne)
-
-circle_se <- destPoint(center, b=90:180, d=600)
-circle_se <- rbind(center, circle_se)
-
-circle_sw <- destPoint(center, b=180:270, d=400)
-circle_sw <- rbind(center, circle_sw)
-
-circle_nw <- destPoint(center, b=270:360, d=200)
-circle_nw <- rbind(center, circle_nw)
-
-plot(circle, type='l')
-polygon(circle_ne, col = "red")
-polygon(circle_se, col = "blue")
-polygon(circle_sw, col = "gray")
-polygon(circle_nw, col = "orange")
+write_csv(x = data_p_long, path = "./data/ebtrk_atlc_1988_2015.cleaned.txt")
 ```
 
-![](README_files/figure-html/experimentGeosphere-1.png)<!-- -->
 
