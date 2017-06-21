@@ -7,29 +7,37 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, collapse = TRUE)
+library(readr)
+library(faraway)
+library(ggplot2)
+library(grid)
+library(lubridate)
+library(magrittr)
+data("worldcup")
 ```
 
 ## How to build a new geom
 
+```
+(1st) create a new class from the Geom class
+ required_aes = <a character vector of required aesthetics>,
+ default_aes = aes(<default values for certain aesthetics>),
+ draw_key = <a function used to draw the key in the legend>,
+ draw_panel = function(data, panel_scales, coord) {
+   Function that returns a grid grob that will 
+   be plotted (this is where the real work occurs)
+
+(2nd) create the corrisponding geom function
+```
+
+
 ### Example 1
 
 ```{r example1}
-# (1st) create a new class from the Geom class
-
-#  required_aes = <a character vector of required aesthetics>,
-
-#  default_aes = aes(<default values for certain aesthetics>),
-
-#  draw_key = <a function used to draw the key in the legend>,
-
-#  draw_panel = function(data, panel_scales, coord) {
-#    Function that returns a grid grob that will 
-#    be plotted (this is where the real work occurs)
-
-GeomMyPoint <- ggplot2::ggproto("GeomMyPoint", Geom, 
+GeomMyPoint <- ggproto("GeomMyPoint", Geom, 
                  required_aes = c("x", "y"),
-                 default_aes = aes(shape = 1),
-                 draw_key = ggplot2::draw_key_point,
+                 default_aes = aes(shape = 19),
+                 draw_key = draw_key_point,
                  draw_panel = function(data, panel_scales, coord){
                    #Transform the data
                    coords <- coord$transform(data, panel_scales)
@@ -38,12 +46,186 @@ GeomMyPoint <- ggplot2::ggproto("GeomMyPoint", Geom,
                    str(coords)
                    
                    #Create a grid grob
-                   grid::pointsGrob(
+                   pointsGrob(
                      x = coords$x,
                      y = coords$y,
                      pch = coords$shape
                    )
                  })
 
+geom_mypoint <- function(mapping = NULL, data = NULL, stat = "identity",
+                       position = "identity", na.rm = FALSE,
+                       show.legend = NA, inherit.aes = TRUE, ...){
+  layer(
+    geom = GeomMyPoint, mapping = mapping,
+    data = data, stat = stat, position = position,
+    show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm,...)
+  )
+}
+
+ggplot(data = worldcup, mapping = aes(x = Time, y = Shots)) + geom_mypoint()
+```
+
+### Example 2
+
+```{r example2}
+GeomAutoTransparent <- ggproto("GeomAutoTransparent", Geom, 
+                 required_aes = c("x", "y"),
+                 default_aes = aes(shape = 19),
+                 draw_key = draw_key_point,
+                 draw_panel = function(data, panel_scales, coord){
+                   #Transform the data
+                   coords <- coord$transform(data, panel_scales)
+                   
+                   #Print out the transofrmed data
+                   str(coords)
+                   
+                   #Compute the transparency factor
+                   n <- nrow(data)
+                   
+                   if(n > 100 && n <= 200){
+                     coords$alpha <- 0.3
+                   }else if(n > 200){
+                     coords$alpha <- 0.15
+                   }else{
+                     coords$alpha <- 1
+                   }
+                   
+                   #Print out the transofrmed data
+                   str(coords)
+                   
+                   #Create a grid grob
+                   pointsGrob(
+                     x = coords$x,
+                     y = coords$y,
+                     pch = coords$shape,
+                     gp = gpar(alpha = coords$alpha)
+                   )
+                 })
+
+geom_tranparentpoint <- function(mapping = NULL, data = NULL, stat = "identity",
+                       position = "identity", na.rm = FALSE,
+                       show.legend = NA, inherit.aes = TRUE, ...){
+  layer(
+    geom = GeomAutoTransparent, mapping = mapping,
+    data = data, stat = stat, position = position,
+    show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm,...)
+  )
+}
+
+ggplot(data = worldcup, mapping = aes(x = Time, y = Shots)) + 
+  geom_tranparentpoint()
+
+ggplot(data = worldcup[1:150,], mapping = aes(x = Time, y = Shots)) + 
+  geom_tranparentpoint()
+
+ggplot(data = worldcup[1:60,], mapping = aes(x = Time, y = Shots)) + 
+  geom_tranparentpoint()
+
+ggplot(data = worldcup, mapping = aes(x = Time, y = Shots)) + 
+  geom_tranparentpoint() +
+  facet_wrap(~ Position, ncol = 2)
+```
+
+### Build the Hurricane Geom
+
+```{r geomHurricane}
+#Load the cleaned data
+data_hurricane <- read_csv(file = "./data/ebtrk_atlc_1988_2015.cleaned.txt")
+#Get one observation
+storm_observation <- data_hurricane[data_hurricane$storm_id == "KATRINA-2005" & 
+                                data_hurricane$date == ymd_hms("2005-08-29 12:00:00"),]
+
+storm_observation$wind_speed <- as.factor(storm_observation$wind_speed)
+
+#create geom skeleton
+GeomHurricane <- ggplot2::ggproto(
+  "GeomHurricane", 
+  Geom,
+  required_aes = c("x", "y", "r_ne", "r_se", "r_sw", "r_nw"),
+  default_aes = aes(colour = "NA", fill = "grey20", size = 0.5, linetype = 1, alpha = 0.8, scale_radii = 1),
+  draw_key = draw_key_polygon,
+  draw_group = function(data, panel_scales, coord){
+    str(data)
+    
+    point_obs = c(data[1,]$x, data[1,]$y)
+    color <- data[1,]$colour
+    fill <- data[1,]$fill
+    alpha <- data[1,]$alpha
+    scale_radii = data[1,]$scale_radii
+    
+    points_polygon = geosphere::destPoint(p = point_obs, b=1:90, d = data[1,]$r_ne * 1852 * scale_radii)
+    data_ne <- data.frame(x = c(points_polygon[,"lon"], point_obs[1]),
+                          y = c(points_polygon[,"lat"], point_obs[2])
+                          )
+    str(data_ne)
+    
+    points_polygon = geosphere::destPoint(p = point_obs, b=90:180, d = data[1,]$r_se * 1852 * scale_radii)
+    data_se <- data.frame(x = c(points_polygon[,"lon"], point_obs[1]),
+                          y = c(points_polygon[,"lat"], point_obs[2])
+                          )
+    str(data_se)
+    
+    points_polygon = geosphere::destPoint(p = point_obs, b=180:270, d = data[1,]$r_sw * 1852 * scale_radii)
+    data_sw <- data.frame(x = c(points_polygon[,"lon"], point_obs[1]),
+                          y = c(points_polygon[,"lat"], point_obs[2])
+                          )
+    str(data_sw)
+    
+    points_polygon = geosphere::destPoint(p = point_obs, b=270:360, d = data[1,]$r_nw * 1852 * scale_radii)
+    data_nw <- data.frame(x = c(points_polygon[,"lon"], point_obs[1]),
+                          y = c(points_polygon[,"lat"], point_obs[2])
+                          )
+    str(data_nw)
+    
+    
+    
+    data_all <- rbind(data_ne, data_se, data_nw, data_sw)
+    coords <- coord$transform(data_all, panel_scales)
+    
+    grid::polygonGrob(x = coords$x,
+                      y = coords$y,
+                      gp = grid::gpar(col = color, fill = fill, alpha = alpha))
+  }
+)
+
+geom_hurricane <- function(mapping = NULL, data = NULL, stat = "identity",
+                       position = "identity", na.rm = FALSE,
+                       show.legend = NA, inherit.aes = TRUE, ...){
+  layer(
+    geom = GeomHurricane, mapping = mapping,
+    data = data, stat = stat, position = position,
+    show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm,...)
+  )
+}
+
+library(ggmap)
+
+map_plot <- get_map("Lousiana", zoom = 6, maptype = "toner-background") 
+
+map_plot %>%
+  ggmap(extent = "device") +
+  geom_hurricane(data = storm_observation,
+                 aes(x = longitude, y = latitude, 
+                     r_ne = ne, r_se = se, r_nw = nw, r_sw = sw,
+                     color = wind_speed, fill = wind_speed)) + 
+  scale_color_manual(name = "Wind speed (kts)", 
+                     values = c("red", "orange", "yellow")) + 
+  scale_fill_manual(name = "Wind speed (kts)", 
+                    values = c("red", "orange", "yellow"))
+
+map_plot %>%
+  ggmap(extent = "device") +
+  geom_hurricane(data = storm_observation,
+                 aes(x = longitude, y = latitude, 
+                     r_ne = ne, r_se = se, r_nw = nw, r_sw = sw,
+                     color = wind_speed, fill = wind_speed), scale_radii = 0.5) + 
+  scale_color_manual(name = "Wind speed (kts)", 
+                     values = c("red", "orange", "yellow")) + 
+  scale_fill_manual(name = "Wind speed (kts)", 
+                    values = c("red", "orange", "yellow"))
 ```
 

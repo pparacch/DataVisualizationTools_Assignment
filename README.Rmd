@@ -15,7 +15,7 @@ library(readr)
 library(dplyr)
 library(lubridate)
 library(ggplot2)
-
+library(grid)
 library(geosphere)
 ```
 
@@ -163,6 +163,7 @@ data_p_long <- rbind(data_p_34, data_p_50, data_p_64) %>%
   arrange(storm_id, date, wind_speed)
 
 data_p_long[data_p_long$storm_id == "KATRINA-2005" & data_p_long$date == ymd_hms("2005-08-29 12:00:00"),]
+write_csv(x = data_p_long, path = "./data/ebtrk_atlc_1988_2015.cleaned.txt")
 ```
 
 ### Experiment with the `geosphere` package
