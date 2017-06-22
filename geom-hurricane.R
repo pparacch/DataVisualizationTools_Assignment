@@ -1,8 +1,49 @@
-#' Function to build the geom_hurricane 
+#' Build a wind radii geom for a storm observation 
 #' 
-
-#Documentation to be added
-
+#' \code(geom_hurrican) return a wind radii geom that shows essentially 
+#' a polygon for each of the wind levels provided in the storm observation.
+#' The polygon, for each wind level, uses the wind radii to calculate the 
+#' points along the boundary of the polygon.
+#' 
+#' @section Aesthetics:
+#' \code{geom_hurricane} understands the following aesthetics (required in bold):
+#' \itemize{
+#'   \item \strong{x}
+#'   \item \strong{y}
+#'   \item \strong{r_ne}
+#'   \item \strong{r_se}
+#'   \item \strong{r_nw}
+#'   \item \strong{r_sw}
+#'   \item colour
+#'   \item fill
+#'   \item size
+#'   \item linetype
+#'   \item alpha
+#'   \item scale_radii
+#' }
+#' 
+#' @inheritParams layer
+#' 
+#' @section Depends on:
+#' \enumerate{
+#'   \item \code{\link[ggplot2]{layer}} in the \code{ggplot2} package.
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' map_plot <- ggmap::get_map("Lousiana", zoom = 5, maptype = "toner-background") 
+#' map_plot %>%
+#'   ggmap::ggmap(extent = "device") +
+#'   geom_hurricane(data = storm_observation_ike,
+#'                  ggplot2::aes(x = longitude, y = latitude, 
+#'                               r_ne = ne, r_se = se, r_nw = nw, r_sw = sw,
+#'                               color = wind_speed, fill = wind_speed)) +
+#'   ggplot2::scale_color_manual(name = "Wind speed (kts)", 
+#'                               values = c("red", "orange", "yellow")) + 
+#'   ggplot2::scale_fill_manual(name = "Wind speed (kts)", 
+#'                              values = c("red", "orange", "yellow"))
+#' }
+#' @export
 geom_hurricane <- function(mapping = NULL, data = NULL, stat = "identity",
                            position = "identity", na.rm = FALSE,
                            show.legend = NA, inherit.aes = TRUE, ...){
@@ -14,8 +55,10 @@ geom_hurricane <- function(mapping = NULL, data = NULL, stat = "identity",
   )
 }
 
-
-
+#' @rdname ggplot2-ggproto
+#' @format NULL
+#' @usage NULL
+#' @export
 GeomHurricane <- ggplot2::ggproto(
   "GeomHurricane", 
   ggplot2::Geom,
