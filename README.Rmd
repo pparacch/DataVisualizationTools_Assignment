@@ -129,7 +129,11 @@ map_plot %>%
 
 ```
 
+## References
 
+["Building New Graphical Elements"](http://rdpeng.github.io/RProgDA/building-new-graphical-elements.html) from "Mastering Software Development in R" by Roger D. Peng, Sean Kross, and Brooke Anderson  
+["Extending ggplot2"](https://cran.r-project.org/web/packages/ggplot2/vignettes/extending-ggplot2.html) Vignette from the `ggplot2` package  
+["Introduction to the geosphere package"](https://cran.r-project.org/web/packages/geosphere/vignettes/geosphere.pdf) Vignette from the `geosphere` package
   
 
   
